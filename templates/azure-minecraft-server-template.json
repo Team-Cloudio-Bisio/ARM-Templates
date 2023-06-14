@@ -1,0 +1,407 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "azureContainerInstanceName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of your Minecraft server on Azure (ACI). Must be unique within Azure"
+      }
+    },
+    "containerRestartPolicy": {
+      "type": "string",
+      "metadata": {
+        "description": "Restart Policy of Azure container"
+      },
+      "defaultValue": "OnFailure",
+      "allowedValues": [
+        "Always",
+        "Never",
+        "OnFailure"
+      ]
+    },
+    "serverMemory": {
+      "type": "int",
+      "defaultValue": 2,
+      "metadata": {
+        "description": "Max Memory"
+      }
+    },
+    "serverCPU": {
+      "type": "int",
+      "defaultValue": 1,
+      "metadata": {
+        "description": "vCPU's"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "[concat('mcstorage', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "The name of the storage account that'll be used to store the server files. Must be unique within Azure and contain no special characters"
+      }
+    },
+    "containerImage": {
+      "type": "string",
+      "defaultValue": "latest",
+      "metadata": {
+        "description": "The Container Tag (Ex. java17-alpine)"
+      }
+    },
+    "minecraftVersion": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "The Minecraft version of the server. If empty, it will use the latest.",
+        "comments": "Example: 1.20.1"
+      }
+    },
+    "serverPort": {
+      "type": "int",
+      "defaultValue": 25565,
+      "metadata": {
+        "description": "Port you will like the server to run on (by default Minecraft servers use port 25565)."
+      }
+    },
+    "serverType": {
+      "type": "string",
+      "defaultValue": "Vanilla",
+      "metadata": {
+        "description": "The server type. By default it's set to Vanilla (the official server provided by Mojang)."
+      },
+      "allowedValues": [
+        "Vanilla",
+        "Bukkit/Spigot",
+        "Fabric",
+        "Forge",
+        "Catserver",
+        "Paper"
+      ]
+    },
+    "serverEULA": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Mojang/Microsoft EULA (End User License Agreement). Need to be TRUE for the server to work."
+      }
+    },
+    "serverOperators": {
+      "type": "string",
+	  "defaultValue": "",
+      "metadata": {
+        "description": "The server operator usernames (comma separated).",
+        "comments": "Example: user1,user2"
+      }
+    },
+    "serverWorld": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "URL from which the Minecraft server world will be downloaded (TAR/ZIP). If empty, a new world will be generated."
+      }
+    },
+    "serverEnableStatus": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "If set to true makes the server appear as online on the server list."
+      }
+    },
+    "serverMOTD": {
+      "type": "string",
+      "maxLength": 59,
+      "defaultValue": "Minecraft Server powered by Docker and Azure!",
+      "metadata": {
+        "description": "Server MOTD (Message Of The Day). It's the text that gets displayed under the Server name."
+      }
+    },
+    "serverDifficulty": {
+      "type": "string",
+      "defaultValue": "easy",
+      "metadata": {
+        "description": "The difficulty level. Default: easy."
+      },
+      "allowedValues": [
+        "peaceful",
+        "easy",
+        "medium",
+        "hard"
+      ]
+    },
+    "serverGamemode": {
+      "type": "string",
+      "defaultValue": "survival",
+      "metadata": {
+        "description": "Defines the mode of gameplay."
+      },
+      "allowedValues": [
+        "creative",
+        "survival",
+        "adventure",
+        "spectator"
+      ]
+    },
+    "serverForceGamemode": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "If set to true forces players to always join in the default game mode."
+      }
+    },
+    "serverHardcore": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "If set to true, server difficulty is ignored and set to hard and players are set to spectator mode if they die."
+      }
+    },
+    "serverAllowNether": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Specify wheter players are allowed to trvel to the Nether or not."
+      }
+    },
+    "serverAllowPVP": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Specify wheter the PVP (Player-Vs-Player) will be enabled or not."
+      }
+    },
+    "serverSpawnProtection": {
+      "type": "int",
+      "defaultValue": 0,
+      "minValue": 0,
+      "metadata": {
+        "description": "Sets the area that non-operators can not edit (0 to disable)."
+      }
+    },
+    "serverEnableCommandBlocks": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Specify wheter command blocks are enabled or not."
+      }
+    },
+    "serverMaxPlayers": {
+      "type": "int",
+      "minValue": 1,
+      "defaultValue": 20,
+      "metadata": {
+        "description": "The maximum number of players that can join the server."
+      }
+    },
+    "serverOnlineMode": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Select wheter the server needs to validate players against Minecraft's account database or not. If set to false, player with unofficial clients can join the server too."
+      }
+    },
+    "serverPlayerIdleTimeout": {
+      "type": "int",
+      "defaultValue": 0,
+      "minValue": 0,
+      "metadata": {
+        "description": "If non-zero, players are kicked from the server if they are idle for more than that many minutes."
+      }
+    },
+    "serverEnableWhitelist": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable the whitelist to manually manage the server whitelist."
+      }
+    },
+    "serverWhitelist": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "A list of usernames and/or UUIDs (separated by comma)"
+      }
+    }
+  },
+  "variables": {
+    "shareName": "server"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2018-07-01",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[resourceGroup().location]",
+      "kind": "StorageV2",
+      "sku": {
+        "name": "Standard_LRS",
+        "tier": "Standard"
+      },
+      "properties": {
+        "accessTier": "Hot"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+      "apiVersion": "2019-04-01",
+      "name": "[concat(parameters('storageAccountName'), '/default/', variables('shareName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "name": "[parameters('azureContainerInstanceName')]",
+      "apiVersion": "2018-10-01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+        "[variables('shareName')]"
+      ],
+      "properties": {
+        "containers": [
+          {
+            "name": "[parameters('azureContainerInstanceName')]",
+            "properties": {
+              "image": "[concat('itzg/minecraft-server:', parameters('containerImage'))]",
+              "ports": [
+                {
+                  "protocol": "TCP",
+                  "port": "[parameters('serverPort')]"
+                }
+              ],
+              "environmentVariables": [
+                {
+                  "name": "VERSION",
+                  "value": "[parameters('minecraftVersion')]"
+                },
+                {
+                  "name": "SERVER_PORT",
+                  "value": "[parameters('serverPort')]"
+                },
+                {
+                  "name": "TYPE",
+                  "value": "[parameters('serverType')]"
+                },
+                {
+                  "name": "EULA",
+                  "value": "[parameters('serverEULA')]"
+                },
+                {
+                  "name": "OPS",
+                  "value": "[parameters('serverOperators')]"
+                },
+                {
+                  "name": "WORLD",
+                  "value": "[parameters('serverWorld')]"
+                },
+                {
+                  "name": "ENABLE_STATUS",
+                  "value": "[parameters('serverEnableStatus')]"
+                },
+                {
+                  "name": "MOTD",
+                  "value": "[parameters('serverMOTD')]"
+                },
+                {
+                  "name": "DIFFICULTY",
+                  "value": "[parameters('serverDifficulty')]"
+                },
+                {
+                  "name": "MODE",
+                  "value": "[parameters('serverGamemode')]"
+                },
+                {
+                  "name": "FORCE_GAMEMODE",
+                  "value": "[parameters('serverForceGamemode')]"
+                },
+                {
+                  "name": "HARDCORE",
+                  "value": "[parameters('serverHardcore')]"
+                },
+                {
+                  "name": "ALLOW_NETHER",
+                  "value": "[parameters('serverAllowNether')]"
+                },
+                {
+                  "name": "PVP",
+                  "value": "[parameters('serverAllowPVP')]"
+                },
+                {
+                  "name": "SPAWN_PROTECTION",
+                  "value": "[parameters('serverSpawnProtection')]"
+                },
+                {
+                  "name": "ENABLE_COMMAND_BLOCK",
+                  "value": "[parameters('serverEnableCommandBlocks')]"
+                },
+                {
+                  "name": "MAX_PLAYERS",
+                  "value": "[parameters('serverMaxPlayers')]"
+                },
+                {
+                  "name": "ONLINE_MODE",
+                  "value": "[parameters('serverOnlineMode')]"
+                },
+                {
+                  "name": "PLAYER_IDLE_TIMEOUT",
+                  "value": "[parameters('serverPlayerIdleTimeout')]"
+                },
+                {
+                  "name": "ENABLE_WHITELIST",
+                  "value": "[parameters('serverEnableWhitelist')]"
+                },
+                {
+                  "name": "WHITELIST",
+                  "value": "[parameters('serverWhitelist')]"
+                },
+                {
+                  "name": "MEMORY",
+                  "value": ""
+                },
+                {
+                  "name": "JVM_XX_OPTS",
+                  "value": "-XX:MaxRAMPercentage=75"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "memoryInGB": "[parameters('serverMemory')]",
+                  "cpu": "[parameters('serverCPU')]"
+                }
+              },
+              "volumeMounts": [
+                {
+                  "name": "azurefile",
+                  "mountPath": "/data"
+                }
+              ]
+            }
+          }
+        ],
+        "initContainers": [],
+        "restartPolicy": "[parameters('containerRestartPolicy')]",
+        "ipAddress": {
+          "ports": [
+            {
+              "protocol": "TCP",
+              "port": "[parameters('serverPort')]"
+            }
+          ],
+          "type": "Public",
+          "dnsNameLabel": "[parameters('azureContainerInstanceName')]"
+        },
+        "osType": "Linux",
+        "volumes": [
+          {
+            "name": "azurefile",
+            "azureFile": {
+              "shareName": "[variables('shareName')]",
+              "storageAccountName": "[parameters('storageAccountName')]",
+              "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
